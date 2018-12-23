@@ -1,0 +1,73 @@
+{
+    "variables": {
+      "aws_region": "us-west-2",
+      "creator": "{{env `USER`}}",
+      "instance_type": "t2.micro",
+      "source_ami_id": "",
+      "encrypted": "false",
+      "kms_key_id": "",
+      "elasticsearch_version": "6.5.4"
+    },
+  
+    "builders": [
+      {
+        "type": "amazon-ebs",
+        "region": "{{user `aws_region`}}",
+        "source_ami": "{{user `source_ami_id`}}",
+        "source_ami_filter": {
+          "filters": {
+            "architecture": "x86_64",
+            "name": "amzn2-ami-minimal-hvm-*",
+            "root-device-type": "ebs",
+            "state": "available",
+            "virtualization-type": "hvm"
+          },
+          "owners": [ "137112412989" ],
+          "most_recent": true
+        },
+        "instance_type": "{{user `instance_type`}}",
+        "launch_block_device_mappings": [
+          {
+            "device_name": "/dev/xvda",
+            "volume_type": "gp2",
+            "volume_size": 20,
+            "delete_on_termination": true
+          }
+        ],
+        "ssh_username": "ec2-user",
+        "ssh_pty": true,
+        "encrypt_boot": "{{user `encrypted`}}",
+        "kms_key_id": "{{user `kms_key_id`}}",
+        "run_tags": {
+            "creator": "{{user `creator`}}"
+        },
+        "tags": {
+            "created": "{{timestamp}}"
+        },
+        "ami_name": "elasticsearch-{{user `elasticsearch_version`}}-{{timestamp}}",
+        "ami_description": "Elasticsearch Server {{user `elasticsearch_version`}} with AmazonLinux2 image",
+        "ami_groups": "all"
+      }
+    ],
+  
+    "provisioners": [
+      {
+        "type": "shell",
+        "inline": [
+          "sudo amazon-linux-extras enable corretto8",
+          "sudo yum install -y java-1.8.0-amazon-corretto-devel",
+          "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
+          "sudo rpm --install elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
+          "sudo systemctl daemon-reload",
+          "sudo systemctl enable elasticsearch.service"
+        ]
+      }
+    ],
+    "post-processors": [
+      {
+        "type": "manifest",
+        "output": "manifest.json",
+        "strip_path": true
+      }
+    ]
+}
