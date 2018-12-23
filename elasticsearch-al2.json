@@ -44,22 +44,29 @@
         "tags": {
             "created": "{{timestamp}}"
         },
-        "ami_name": "elasticsearch-{{user `elasticsearch_version`}}-{{timestamp}}",
-        "ami_description": "Elasticsearch Server {{user `elasticsearch_version`}} with AmazonLinux2 image",
+        "ami_name": "elasticsearch-oss-{{user `elasticsearch_version`}}-{{timestamp}}",
+        "ami_description": "Elasticsearch {{user `elasticsearch_version`}} with AmazonLinux2 image",
         "ami_groups": "all"
       }
     ],
   
     "provisioners": [
       {
+        "type": "file",
+        "source": "./files/awslogs.conf",
+        "destination": "/tmp/awslogs.conf"
+      },
+      {
         "type": "shell",
         "inline": [
           "sudo amazon-linux-extras enable corretto8",
-          "sudo yum install -y java-1.8.0-amazon-corretto-devel",
+          "sudo yum install -y java-1.8.0-amazon-corretto-devel amazon-ssm-agent awslogs",
+          "sudo mv /tmp/awslogs.conf /etc/awslogs/awslogs.conf",
+          "sudo sed -i -e 's/us-east-1/{{user `aws_region`}}/g' /etc/awslogs/awscli.conf"
           "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
           "sudo rpm --install elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
           "sudo systemctl daemon-reload",
-          "sudo systemctl enable elasticsearch.service"
+          "sudo systemctl enable elasticsearch.service amazon-ssm-agent awslogsd"
         ]
       }
     ],
