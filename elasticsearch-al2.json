@@ -62,7 +62,7 @@
           "sudo amazon-linux-extras enable corretto8",
           "sudo yum install -y java-1.8.0-amazon-corretto-devel amazon-ssm-agent awslogs",
           "sudo mv /tmp/awslogs.conf /etc/awslogs/awslogs.conf",
-          "sudo sed -i -e 's/us-east-1/{{user `aws_region`}}/g' /etc/awslogs/awscli.conf"
+          "sudo sed -i -e 's/us-east-1/{{user `aws_region`}}/g' /etc/awslogs/awscli.conf",
           "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
           "sudo rpm --install elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
           "sudo systemctl daemon-reload",
