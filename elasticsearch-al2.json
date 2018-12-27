@@ -30,7 +30,7 @@
           {
             "device_name": "/dev/xvda",
             "volume_type": "gp2",
-            "volume_size": 20,
+            "volume_size": 8,
             "delete_on_termination": true
           }
         ],
@@ -42,31 +42,39 @@
             "creator": "{{user `creator`}}"
         },
         "tags": {
-            "created": "{{timestamp}}"
+            "created": "{{timestamp}}",
+            "elasticsearch_version": "{{user `elasticsearch_version`}}",
+            "java_version": "Amazon Corretto 8"
         },
-        "ami_name": "elasticsearch-oss-{{user `elasticsearch_version`}}-{{timestamp}}",
-        "ami_description": "Elasticsearch {{user `elasticsearch_version`}} with AmazonLinux2 image",
+        "ami_name": "elasticsearch-oss-{{user `elasticsearch_version`}}-corretto8-beta-{{timestamp}}",
+        "ami_description": "Elasticsearch {{user `elasticsearch_version`}} with Amazon Corretto 8 Beta on AmazonLinux2",
         "ami_groups": "all"
       }
     ],
   
     "provisioners": [
       {
-        "type": "file",
-        "source": "./files/awslogs.conf",
-        "destination": "/tmp/awslogs.conf"
+        "type": "shell",
+        "inline": [
+          "sudo yum install -y amazon-ssm-agent awslogs",
+          "sudo sed -i -e 's/us-east-1/{{user `aws_region`}}/g' /etc/awslogs/awscli.conf",
+          "sudo systemctl daemon-reload",
+          "sudo systemctl enable amazon-ssm-agent awslogsd"
+        ]
       },
       {
         "type": "shell",
         "inline": [
           "sudo amazon-linux-extras enable corretto8",
-          "sudo yum install -y java-1.8.0-amazon-corretto-devel amazon-ssm-agent awslogs",
-          "sudo mv /tmp/awslogs.conf /etc/awslogs/awslogs.conf",
-          "sudo sed -i -e 's/us-east-1/{{user `aws_region`}}/g' /etc/awslogs/awscli.conf",
+          "sudo yum install -y java-1.8.0-amazon-corretto-devel",
           "curl -O https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
           "sudo rpm --install elasticsearch-oss-{{user `elasticsearch_version`}}.rpm",
+          "sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install analysis-icu",
+          "sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install analysis-kuromoji",
+          "yes | sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install discovery-ec2",
+          "yes | sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3",
           "sudo systemctl daemon-reload",
-          "sudo systemctl enable elasticsearch.service amazon-ssm-agent awslogsd"
+          "sudo systemctl enable elasticsearch.service"
         ]
       }
     ],
